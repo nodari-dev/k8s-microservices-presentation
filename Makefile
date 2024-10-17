@@ -4,3 +4,6 @@ run:
 	minikube image load storage:latest
 	minikube image load access-rights:latest
 	kubectl apply -f ./k8s/
+
+deploy:
+	kubectl apply -f ./k8s/
