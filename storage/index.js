@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const PORT = 3000;
+const PORT = 3002;
 const SERVICE_NAME = "storage"
 
 const LOGGER = "http://localhost:3000/log"
@@ -27,17 +27,21 @@ const time_now = () => {
 }
 
 const log = async (time, method, service_name, endpoint, request_id) => {
-	try{
-		await axios.post(LOGGER, {time, method, service_name, endpoint, request_id})
-	} catch(e){
+	try {
+		await axios.post(LOGGER, { time, method, service_name, endpoint, request_id })
+	} catch (e) {
 		console.log(e)
 	}
 }
 
-const check_access = async (endpoint) => {
+const check_access = async (endpoint, req_id) => {
 	let access = false;
 	try {
-		const res = axios.get(ACCESS_RIGHTS + endpoint)
+		const res = axios.get(ACCESS_RIGHTS + endpoint, {
+			headers: {
+				"X-Request-ID": req_id
+			}
+		})
 		if (res.status == 200) {
 			access = true
 		}
@@ -48,36 +52,38 @@ const check_access = async (endpoint) => {
 	return access
 }
 
-const gen_req_id = (req) =>{
-	return req.headers["X-REQUEST-ID"] ?? uuidv4();
+const gen_req_id = (req) => {
+	return req.header("X-Request-ID") ?? uuidv4();
 }
 
 app.get('/public', async (req, res) => {
 	try {
-		await log(time_now, req.method, SERVICE_NAME, "/public", gen_req_id());
-		const access_granted = check_access("/public");
-		if(access_granted){
+		const req_id = gen_req_id(req);
+		await log(time_now(), req.method, SERVICE_NAME, "/public", req_id);
+		const access_granted = await check_access("/public", req_id);
+		if (access_granted) {
 			res.send('alright, you can see public data');
-		} else{
+		} else {
 			res.status(403).send('You will not see public data');
 		}
-	} catch (error) {
-		console.error('Error calling access rights:', error.message);
+	} catch (e) {
+		console.error('Error calling access rights:', e);
 		res.status(500).send('error calling access rights');
 	}
 });
 
 app.get('/private', async (req, res) => {
 	try {
-		await log(time_now, req.method, SERVICE_NAME, "/private", gen_req_id());
-		const access_granted = check_access("/private");
-		if(access_granted){
+		const req_id = gen_req_id(req);
+		await log(time_now(), req.method, SERVICE_NAME, "/private", req_id);
+		const access_granted = await check_access("/private", req_id);
+		if (access_granted) {
 			res.send('alright, you can see private data');
-		} else{
+		} else {
 			res.status(403).send('You will not private data');
 		}
-	} catch (error) {
-		console.error('Error calling access rights:', error.message);
+	} catch (e) {
+		console.error('Error calling access rights:', e);
 		res.status(500).send('error calling access rights');
 	}
 });

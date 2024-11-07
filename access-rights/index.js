@@ -34,23 +34,25 @@ const log = async (time, method, service_name, endpoint, request_id) => {
 }
 
 const gen_req_id = (req) =>{
-	return req.headers["X-REQUEST-ID"] ?? uuidv4();
+	return req.header("X-Request-ID") ?? uuidv4();
 }
 
 app.get('/public', async (req, res) => {
 	try {
-		await log(time_now, req.method, SERVICE_NAME, "/public", gen_req_id());
-		res.status(200);
-	} catch (error) {
+		const req_id =  gen_req_id(req);
+		await log(time_now(), req.method, SERVICE_NAME, "/public", req_id);
+		res.status(200).send();
+	} catch (e) {
 		res.status(500).send('something went wrong', e);
 	}
 });
 
-app.get('/public', async (req, res) => {
+app.get('/private', async (req, res) => {
 	try {
-		await log(time_now, req.method, SERVICE_NAME, "/public", gen_req_id());
-		res.status(200);
-	} catch (error) {
+		const req_id = gen_req_id(req);
+		await log(time_now(), req.method, SERVICE_NAME, "/private", req_id);
+		res.status(403).send();
+	} catch (e) {
 		res.status(500).send('something went wrong', e);
 	}
 });
